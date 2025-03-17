@@ -1,9 +1,11 @@
 import { InventoryService } from '../services/InventoryService.js';
+import { TransactionService } from '../services/TransactionService.js';
 import { Item } from '../models/Item.js';
 import inquirer from 'inquirer'
 
 async function startInterface() {
   const inventario = new InventoryService()
+  const transacciones = new TransactionService(inventario);
   console.log('Bienvenido al sistema de gestión de inventario.');
   while (true) {
     const { option } = await inquirer.prompt([
@@ -15,8 +17,7 @@ async function startInterface() {
           'Añadir bien', 'Eliminar bien', 'Modificar bien', 'Ver bienes',
           'Añadir mercader', 'Eliminar mercader', 'Modificar mercader', 'Ver mercaderes',
           'Añadir cliente', 'Eliminar cliente', 'Modificar cliente', 'Ver clientes',
-          'Registrar venta', 'Registrar compra', 'Registrar devolución',
-          'Ver transacciones', 'Eliminar transacción',
+          'Registrar transacción', 'Ver transacciones', 'Eliminar transacción',
           'Salir'
         ],
       },
@@ -97,6 +98,62 @@ async function startInterface() {
           console.log('Bienes en el inventario:');
           stock.forEach((entry, index) => {
             console.log(`${index + 1}. ID: ${entry.item.id}, Nombre: ${entry.item.name}, Descripción: ${entry.item.description}, Material: ${entry.item.material}, Peso: ${entry.item.weight}, Valor: ${entry.item.value}, Cantidad: ${entry.quantity}`);
+          });
+        }
+        break;
+
+      case 'Registrar transacción':
+        const { tipo } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'tipo',
+            message: 'Seleccione el tipo de transacción:',
+            choices: ['Venta', 'Compra', 'Devolución'],
+          },
+        ]);
+      
+        const transactionType = tipo === 'Venta' ? 'sale' : tipo === 'Compra' ? 'purchase' : 'return';
+      
+        const { participante } = await inquirer.prompt([
+          { type: 'input', name: 'participante', message: 'Nombre del participante (cliente o mercader):' }
+        ]);
+      
+        let items = [];
+        while (true) {
+          const { idItem } = await inquirer.prompt([
+            { type: 'input', name: 'idItem', message: 'ID del bien (deja vacío para finalizar):' }
+          ]);
+          if (!idItem) break;
+      
+          const bien = inventario.getStock().find(entry => entry.item.id === idItem);
+          if (!bien) {
+            console.log('Bien no encontrado.');
+            continue;
+          }
+      
+          const { cantidadNum } = await inquirer.prompt([
+            { type: 'number', name: 'cantidadNum', message: `Cantidad de "${bien.item.name}":` }
+          ]);
+      
+          items.push({ item: bien.item, quantity: cantidadNum });
+        }
+      
+        if (items.length > 0) {
+          const success = transacciones.processTransaction(participante, items, transactionType);
+          console.log(success ? 'Transacción registrada con éxito.' : 'No se pudo completar la transacción.');
+        } else {
+          console.log('No se registraron bienes.');
+        }
+        break;
+      
+      case 'Ver transacciones':
+        const historial = transacciones.getTransactionHistory();
+        if (historial.length === 0) {
+          console.log('No hay transacciones registradas.');
+        } else {
+          console.log('Historial de transacciones:');
+          historial.forEach((tx, index) => {
+            console.log(`${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant}, Bienes: ${tx.items.map(item => `${item.name})`).join(', ')}`);
           });
         }
         break;
