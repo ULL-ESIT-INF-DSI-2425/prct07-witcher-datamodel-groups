@@ -19,7 +19,8 @@
   },
   "homepage": "https://github.com/ULL-ESIT-INF-DSI-2425/prct07-witcher-datamodel-groups#readme",
   "dependencies": {
-    "inquirer": "^9.1.4"
+    "inquirer": "^9.1.4",
+    "lowdb": "^5.1.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7"

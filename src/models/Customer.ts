@@ -6,4 +6,3 @@ export class Customer {
       public location: string
     ) {}
   }
-  

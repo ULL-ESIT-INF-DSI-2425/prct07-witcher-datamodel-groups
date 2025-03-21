@@ -1,7 +1,7 @@
 import { InventoryService } from '../services/InventoryService.js';
-import { TransactionService } from '../services/TransactionService.js';
+import { TransactionService } from '../services/TransactionService.js'; 
 import { Item } from '../models/Item.js';
-import inquirer from 'inquirer'
+import inquirer from 'inquirer';
 
 async function startInterface() {
   const inventario = new InventoryService()
@@ -14,10 +14,8 @@ async function startInterface() {
         name: 'option',
         message: 'Seleccione una opción:',
         choices: [
-          'Añadir bien', 'Eliminar bien', 'Modificar bien', 'Ver bienes',
-          'Añadir mercader', 'Eliminar mercader', 'Modificar mercader', 'Ver mercaderes',
-          'Añadir cliente', 'Eliminar cliente', 'Modificar cliente', 'Ver clientes',
-          'Registrar transacción', 'Ver transacciones', 'Eliminar transacción',
+          'Añadir bien', 'Eliminar bien', 'Ver bienes', 'Modificar bienes',
+          'Registrar transacción', 'Ver transacciones',
           'Salir'
         ],
       },
@@ -45,7 +43,7 @@ async function startInterface() {
       
         } else if ((bienPorID && (!bienPorNombre || bienPorNombre.item.id !== idNuevo)) ||
                    (bienPorNombre && (!bienPorID || bienPorNombre.item.id !== idNuevo))) {
-          console.log('\n⚠️ El ID o el nombre ya existen, pero no coinciden correctamente entre sí.');
+          console.log('\nEl ID o el nombre ya existen, pero no coinciden correctamente entre sí.');
           console.log('Asegúrate de introducir un ID y nombre que coincidan con un bien existente si deseas añadir al stock, o elige un ID y nombre únicos si es un bien nuevo.\n');
       
         } else {
@@ -89,6 +87,8 @@ async function startInterface() {
           console.log('No se ha encontrado ningún bien con ese ID en el inventario.');
         }
         break;
+      
+      case 'Modificar bien':
 
       case 'Ver bienes':
         const stock = inventario.getStock();
