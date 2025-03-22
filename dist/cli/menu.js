@@ -1,5 +1,7 @@
+import { Transaction } from "../models/Transaction.js";
 import { Item } from "../models/Item.js";
 import inquirer from "inquirer";
+import { v4 as uuidv4 } from "uuid";
 export async function startInterface(inventario, transacciones) {
     console.clear();
     console.log("Bienvenido al sistema de gestión de inventario.");
@@ -15,21 +17,26 @@ export async function startInterface(inventario, transacciones) {
                     "📦 Modificar bien",
                     "📦 Ver bienes",
                     "📦 Ordenar bienes",
+                    "📦 Buscar bien",
                     "👤 Añadir cliente",
                     "👤 Eliminar cliente",
                     "👤 Modificar cliente",
                     "👤 Ver clientes",
                     "👤 Ordenar clientes",
+                    "👤 Buscar clientes",
                     "👤 Añadir mercader",
                     "👤 Eliminar mercader",
                     "👤 Modificar mercader",
                     "👤 Ver mercaderes",
                     "👤 Ordenar mercaderes",
+                    "👤 Buscar mercaderes",
                     "🤝 Registrar transacción",
                     "🤝 Eliminar transacción",
                     "🤝 Ver transacciones",
+                    "🤝 Buscar transacciones",
                     "🧾 Generar informes",
                     "🧾 Historial de transacciones por participante",
+                    "🧾 Bien más vendido",
                     "❌ Salir",
                 ],
             },
@@ -210,6 +217,50 @@ export async function startInterface(inventario, transacciones) {
                     console.log(`${index + 1}. ID: ${entry.item.id}, Nombre: ${entry.item.name}, Valor: ${entry.item.value}, Peso: ${entry.item.weight}`);
                 });
                 break;
+            case "📦 Buscar bien":
+                const { criterioBusqueda, terminoBusqueda } = await inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "criterioBusqueda",
+                        message: "Seleccione el criterio de búsqueda:",
+                        choices: ["ID", "Nombre", "Descripción", "Material"],
+                    },
+                    {
+                        type: "input",
+                        name: "terminoBusqueda",
+                        message: "Término de búsqueda:",
+                    },
+                ]);
+                const bienesEncontrados = inventario.getStock().filter((entry) => {
+                    switch (criterioBusqueda) {
+                        case "ID":
+                            return entry.item.id === terminoBusqueda;
+                        case "Nombre":
+                            return entry.item.name
+                                .toLowerCase()
+                                .includes(terminoBusqueda.toLowerCase());
+                        case "Descripción":
+                            return entry.item.description
+                                .toLowerCase()
+                                .includes(terminoBusqueda.toLowerCase());
+                        case "Material":
+                            return entry.item.material
+                                .toLowerCase()
+                                .includes(terminoBusqueda.toLowerCase());
+                        default:
+                            return false;
+                    }
+                });
+                if (bienesEncontrados.length === 0) {
+                    console.log("No se encontraron bienes que coincidan con la búsqueda.");
+                }
+                else {
+                    console.log("Bienes encontrados:");
+                    bienesEncontrados.forEach((entry, index) => {
+                        console.log(`${index + 1}. ID: ${entry.item.id}, Nombre: ${entry.item.name}, Descripción: ${entry.item.description}, Material: ${entry.item.material}, Peso: ${entry.item.weight}, Valor: ${entry.item.value}, Cantidad: ${entry.quantity}`);
+                    });
+                }
+                break;
             case "👤 Añadir cliente":
                 const { nombreCliente, idCliente, razaCliente, ubicacionCliente } = await inquirer.prompt([
                     {
@@ -354,6 +405,52 @@ export async function startInterface(inventario, transacciones) {
                 clientesOrdenados.forEach((cliente, index) => {
                     console.log(`${index + 1}. ID: ${cliente.id}, Nombre: ${cliente.name}, Raza: ${cliente.race}, Ubicación: ${cliente.location}`);
                 });
+                break;
+            case "👤 Buscar clientes":
+                const { criterioClienteBuscar, terminoClienteBuscar } = await inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "criterioClienteBuscar",
+                        message: "Seleccione el criterio de búsqueda:",
+                        choices: ["ID", "Nombre", "Raza", "Ubicación"],
+                    },
+                    {
+                        type: "input",
+                        name: "terminoClienteBuscar",
+                        message: "Término de búsqueda:",
+                    },
+                ]);
+                const clientesEncontrados = inventario
+                    .getCustomers()
+                    .filter((cliente) => {
+                    switch (criterioClienteBuscar) {
+                        case "ID":
+                            return cliente.id === terminoClienteBuscar;
+                        case "Nombre":
+                            return cliente.name
+                                .toLowerCase()
+                                .includes(terminoClienteBuscar.toLowerCase());
+                        case "Raza":
+                            return cliente.race
+                                .toLowerCase()
+                                .includes(terminoClienteBuscar.toLowerCase());
+                        case "Ubicación":
+                            return cliente.location
+                                .toLowerCase()
+                                .includes(terminoClienteBuscar.toLowerCase());
+                        default:
+                            return false;
+                    }
+                });
+                if (clientesEncontrados.length === 0) {
+                    console.log("No se encontraron clientes que coincidan con la búsqueda.");
+                }
+                else {
+                    console.log("Clientes encontrados:");
+                    clientesEncontrados.forEach((cliente, index) => {
+                        console.log(`${index + 1}. ID: ${cliente.id}, Nombre: ${cliente.name}, Raza: ${cliente.race}, Ubicación: ${cliente.location}`);
+                    });
+                }
                 break;
             case "👤 Añadir mercader":
                 const { nombreMercader, idMercader, tipoMercader, ubicacionMercader } = await inquirer.prompt([
@@ -500,82 +597,141 @@ export async function startInterface(inventario, transacciones) {
                     console.log(`${index + 1}. ID: ${mercader.id}, Nombre: ${mercader.name}, Tipo: ${mercader.type}, Ubicación: ${mercader.location}`);
                 });
                 break;
-            case "🤝 Registrar transacción":
-                // quiero poder registrar una transaccion y que eso tenga efecto en el inventario, al vender o devoler se resta del inventario, al comprar se suma al inventario, puede ser la compra de un objeto que esta en el inventario u otro que no lo esté todavia, en cuyo caso habrá que añadir mas parametros para que se almacene el objeto correctamente.
-                const { tipoTransaccion } = await inquirer.prompt([
+            case "👤 Buscar mercaderes":
+                const { criterioMercaderBuscar, terminoMercaderBuscar } = await inquirer.prompt([
                     {
                         type: "list",
-                        name: "tipoTransaccion",
-                        message: "Seleccione el tipo de transacción:",
-                        choices: ["Venta", "Compra", "Devolución"],
+                        name: "criterioMercaderBuscar",
+                        message: "Seleccione el criterio de búsqueda:",
+                        choices: ["ID", "Nombre", "Tipo", "Ubicación"],
+                    },
+                    {
+                        type: "input",
+                        name: "terminoMercaderBuscar",
+                        message: "Término de búsqueda:",
                     },
                 ]);
-                const { idTransaccion, fechaTransaccion, idParticipante } = await inquirer.prompt([
-                    {
-                        type: "input",
-                        name: "idTransaccion",
-                        message: "ID de la transacción:",
-                    },
-                    {
-                        type: "input",
-                        name: "fechaTransaccion",
-                        message: "Fecha de la transacción:",
-                    },
-                    {
-                        type: "input",
-                        name: "idParticipante",
-                        message: "ID del participante:",
-                    },
-                ]);
-                const participante = inventario
-                    .getCustomers()
-                    .find((cliente) => cliente.id === idParticipante) ||
-                    inventario.getMerchants().find((mercader) => mercader.id === idParticipante);
-                if (!participante) {
-                    console.log("No se encontró ningún participante con ese ID.");
-                    break;
-                }
-                const itemsTransaccion = [];
-                while (true) {
-                    const { idBien, cantidadBien } = await inquirer.prompt([
-                        {
-                            type: "input",
-                            name: "idBien",
-                            message: "ID del bien:",
-                        },
-                        {
-                            type: "number",
-                            name: "cantidadBien",
-                            message: "Cantidad:",
-                            validate: (value) => !isNaN(value) && value > 0,
-                        },
-                    ]);
-                    const bien = inventario
-                        .getStock()
-                        .find((entry) => entry.item.id === idBien);
-                    if (!bien) {
-                        console.log("No se encontró ningún bien con ese ID.");
-                        continue;
+                const mercaderesEncontrados = inventario
+                    .getMerchants()
+                    .filter((mercader) => {
+                    switch (criterioMercaderBuscar) {
+                        case "ID":
+                            return mercader.id === terminoMercaderBuscar;
+                        case "Nombre":
+                            return mercader.name
+                                .toLowerCase()
+                                .includes(terminoMercaderBuscar.toLowerCase());
+                        case "Tipo":
+                            return mercader.type
+                                .toLowerCase()
+                                .includes(terminoMercaderBuscar.toLowerCase());
+                        case "Ubicación":
+                            return mercader.location
+                                .toLowerCase()
+                                .includes(terminoMercaderBuscar.toLowerCase());
+                        default:
+                            return false;
                     }
-                    itemsTransaccion.push({ item: bien.item, quantity: cantidadBien });
-                    const { añadirOtro } = await inquirer.prompt([
-                        {
-                            type: "confirm",
-                            name: "añadirOtro",
-                            message: "¿Desea añaadir otro bien a la transacción?",
-                        },
-                    ]);
-                    if (!añadirOtro) {
-                        break;
-                    }
-                }
-                const totalAmount = itemsTransaccion.reduce((total, { item, quantity }) => total + item.value * quantity, 0);
-                const resultado = transacciones.processTransaction(participante, itemsTransaccion, tipoTransaccion === "Venta" ? "sale" : tipoTransaccion === "Compra" ? "purchase" : "return");
-                if (resultado) {
-                    console.log("Transacción completada con éxito.");
+                });
+                if (mercaderesEncontrados.length === 0) {
+                    console.log("No se encontraron mercaderes que coincidan con la búsqueda.");
                 }
                 else {
-                    console.log("No se pudo completar la transacción.");
+                    console.log("Mercaderes encontrados:");
+                    mercaderesEncontrados.forEach((mercader, index) => {
+                        console.log(`${index + 1}. ID: ${mercader.id}, Nombre: ${mercader.name}, Tipo: ${mercader.type}, Ubicación: ${mercader.location}`);
+                    });
+                }
+                break;
+            case "🤝 Registrar transacción":
+                const transactionData = await inquirer.prompt([
+                    { type: "list", name: "type", message: "Tipo de transacción:", choices: ["Compra", "Venta", "Devolución"] },
+                    { type: "input", name: "participantId", message: "ID del participante:" },
+                ]);
+                // Convertir el tipo de transacción a los valores usados internamente
+                const transactionType = transactionData.type === "Compra" ? "purchase" : transactionData.type === "Venta" ? "sale" : "return";
+                // Buscar al participante
+                const participant = inventario.getCustomers().find(c => c.id === transactionData.participantId) ||
+                    inventario.getMerchants().find(m => m.id === transactionData.participantId);
+                if (!participant) {
+                    console.log("No se encontró un participante válido.");
+                    break;
+                }
+                let items = [];
+                if (transactionType === "purchase") {
+                    const { isNewItem } = await inquirer.prompt([
+                        { type: "confirm", name: "isNewItem", message: "¿El bien es nuevo en el inventario?" }
+                    ]);
+                    if (isNewItem) {
+                        // Pedir datos de un nuevo bien
+                        const newItemData = await inquirer.prompt([
+                            { type: "input", name: "name", message: "Nombre del bien:" },
+                            { type: "input", name: "description", message: "Descripción:" },
+                            { type: "input", name: "material", message: "Material:" },
+                            { type: "input", name: "weight", message: "Peso:" },
+                            { type: "input", name: "value", message: "Valor unitario:" },
+                            { type: "input", name: "quantity", message: "Cantidad:" },
+                        ]);
+                        const newItem = new Item(uuidv4(), newItemData.name, newItemData.description, newItemData.material, parseFloat(newItemData.weight), parseFloat(newItemData.value));
+                        inventario.addItem(newItem, parseInt(newItemData.quantity));
+                        items.push({ item: newItem, quantity: parseInt(newItemData.quantity) });
+                    }
+                    else {
+                        // Seleccionar bienes existentes en stock
+                        const stock = inventario.getStock();
+                        const { selectedItems } = await inquirer.prompt([
+                            {
+                                type: "checkbox",
+                                name: "selectedItems",
+                                message: "Seleccione los bienes a comprar:",
+                                choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
+                            }
+                        ]);
+                        const itemQuantities = await inquirer.prompt(selectedItems.map(itemId => ({
+                            type: "input",
+                            name: itemId,
+                            message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
+                            validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
+                        })));
+                        items = selectedItems.map(itemId => {
+                            const item = stock.find(i => i.item.id === itemId)?.item;
+                            return { item, quantity: parseInt(itemQuantities[itemId]) };
+                        });
+                    }
+                }
+                else {
+                    // Para ventas o devoluciones
+                    const stock = inventario.getStock();
+                    const { selectedItems } = await inquirer.prompt([
+                        {
+                            type: "checkbox",
+                            name: "selectedItems",
+                            message: "Seleccione los bienes a vender o devolver:",
+                            choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
+                        }
+                    ]);
+                    const itemQuantities = await inquirer.prompt(selectedItems.map(itemId => ({
+                        type: "input",
+                        name: itemId,
+                        message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
+                        validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
+                    })));
+                    items = selectedItems.map(itemId => {
+                        const item = stock.find(i => i.item.id === itemId)?.item;
+                        return { item, quantity: parseInt(itemQuantities[itemId]) };
+                    });
+                }
+                if (!items.length) {
+                    console.log("No se encontraron bienes válidos.");
+                    break;
+                }
+                const totalAmount = items.reduce((sum, { item, quantity }) => sum + item.value * quantity, 0);
+                const newTransaction = new Transaction(uuidv4(), new Date(), items, totalAmount, participant, transactionType);
+                if (transacciones.processTransaction(newTransaction)) {
+                    console.log("Transacción procesada exitosamente.");
+                }
+                else {
+                    console.log("No se pudo procesar la transacción.");
                 }
                 break;
             case "🤝 Eliminar transacción":
@@ -602,6 +758,48 @@ export async function startInterface(inventario, transacciones) {
                 else {
                     console.log("Historial de transacciones:");
                     historialTransacciones.forEach((tx, index) => {
+                        console.log(`${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name || tx.participant.id}, Bienes: ${tx.items.map(({ item }) => item.name).join(", ")}`);
+                    });
+                }
+                break;
+            case "🤝 Buscar transacciones":
+                const { criterioTransaccion, terminoTransaccion } = await inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "criterioTransaccion",
+                        message: "Seleccione el criterio de búsqueda:",
+                        choices: [
+                            "Fecha (DD/MM/AAAA)",
+                            "Participante (ID)",
+                            "Tipo (purchase/sale/return)",
+                        ],
+                    },
+                    {
+                        type: "input",
+                        name: "terminoTransaccion",
+                        message: "Término de búsqueda:",
+                    },
+                ]);
+                const transaccionesEncontradas = transacciones
+                    .getTransactionHistory()
+                    .filter((tx) => {
+                    switch (criterioTransaccion) {
+                        case "Fecha (DD/MM/AAAA)":
+                            return tx.date.toLocaleDateString() === terminoTransaccion;
+                        case "Participante (ID)":
+                            return tx.participant.id === terminoTransaccion;
+                        case "Tipo (compra/venta/devolucion)":
+                            return tx.type === terminoTransaccion;
+                        default:
+                            return false;
+                    }
+                });
+                if (transaccionesEncontradas.length === 0) {
+                    console.log("No se encontraron transacciones que coincidan con la búsqueda.");
+                }
+                else {
+                    console.log("Transacciones encontradas:");
+                    transaccionesEncontradas.forEach((tx, index) => {
                         console.log(`${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name || tx.participant.id}, Bienes: ${tx.items.map(({ item }) => item.name).join(", ")}`);
                     });
                 }
@@ -655,6 +853,10 @@ export async function startInterface(inventario, transacciones) {
                         console.log(`${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name || tx.participant.id}, Bienes: ${tx.items.map(({ item, quantity }) => `${item.name} (x${quantity})`).join(", ")}`);
                     });
                 }
+                break;
+            case "🧾 Bien más vendido":
+                const bienMasVendido = transacciones.getTopSoldItems();
+                console.log(`El bien más vendido es: ${bienMasVendido[0].item.name} con ${bienMasVendido[0].quantity} unidades vendidas.`);
                 break;
             case "❌ Salir":
                 console.log("Saliendo del sistema...");

@@ -5,7 +5,7 @@ import { Schema } from "../coleccion/schema.js"; // Importar la base de datos
 import { db } from "../coleccion/coleccion.js"; // Importar la base de datos
 
 export class InventoryService {
-  private stock: Map<string, { item: Item; quantity: number }> = new Map();
+  private stock: { item: Item; quantity: number }[] = [];
   private customers: Customer[] = [];
   private merchants: Merchant[] = [];
 
@@ -35,11 +35,24 @@ export class InventoryService {
   }
 
   addItem(item: Item, quantity: number): void {
-    if (this.stock.has(item.id)) {
-      this.stock.get(item.id)!.quantity += quantity;
+    const existingItem = this.stock.find((entry) => entry.item.id === item.id);
+    if (existingItem) {
+      existingItem.quantity += quantity;
     } else {
-      this.stock.set(item.id, { item, quantity });
+      this.stock.push({ item, quantity });
     }
+  }
+
+  removeItem(itemId: string, quantity: number): boolean {
+    const existingItem = this.stock.find((entry) => entry.item.id === itemId);
+    if (existingItem && existingItem.quantity >= quantity) {
+      existingItem.quantity -= quantity;
+      if (existingItem.quantity === 0) {
+        this.stock = this.stock.filter((entry) => entry.item.id !== itemId);
+      }
+      return true;
+    }
+    return false;
   }
 
   addCustomer(customer: Customer): void {
@@ -48,18 +61,6 @@ export class InventoryService {
 
   addMerchant(merchant: Merchant): void {
     this.merchants.push(merchant);
-  }
-
-  removeItem(itemId: string, quantity: number): boolean {
-    if (!this.stock.has(itemId)) return false;
-
-    const stockItem = this.stock.get(itemId)!;
-    if (stockItem.quantity < quantity) return false;
-
-    stockItem.quantity -= quantity;
-    if (stockItem.quantity === 0) this.stock.delete(itemId);
-
-    return true;
   }
 
   removeCustomer(customerId: string): boolean {
@@ -83,7 +84,7 @@ export class InventoryService {
   }
 
   getStock(): { item: Item; quantity: number }[] {
-    return Array.from(this.stock.values());
+    return this.stock;
   }
   // Obtener clientes
   getCustomers(): Customer[] {

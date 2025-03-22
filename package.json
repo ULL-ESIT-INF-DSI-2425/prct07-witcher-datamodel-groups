@@ -21,11 +21,13 @@
   "homepage": "https://github.com/ULL-ESIT-INF-DSI-2425/prct07-witcher-datamodel-groups#readme",
   "dependencies": {
     "inquirer": "^9.1.4",
-    "lowdb": "^5.1.0"
+    "lowdb": "^5.1.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
     "@types/inquirer": "^9.0.7",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9.23.0",
     "eslint-config-prettier": "^10.1.1",
     "globals": "^16.0.0",

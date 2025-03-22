@@ -1,54 +1,41 @@
 import { Transaction } from "../models/Transaction.js";
 import { InventoryService } from "./InventoryService.js";
+import { Item } from "../models/Item.js";
 import { Merchant } from "../models/Merchant.js";
 import { Customer } from "../models/Customer.js";
-import { Item } from "../models/Item.js";
+import { v4 as uuidv4 } from "uuid";
 
 export class TransactionService {
   private transactions: Transaction[] = [];
 
   constructor(private inventory: InventoryService) {}
 
-  processTransaction(
-    participant: Merchant | Customer,
-    items: { item: Item; quantity: number }[],
-    type: "purchase" | "sale" | "return",
-  ): boolean {
-    let totalAmount = 0;
-
-    if (type === "sale" || type === "return") {
-      for (const { item, quantity } of items) {
+  processTransaction(transaction: Transaction): boolean {
+    if (transaction.type === "sale" || transaction.type === "return") {
+      for (const { item, quantity } of transaction.items) {
         if (!this.inventory.removeItem(item.id, quantity)) {
-          console.log(`Stock insuficiente para ${item.name}`);
+          console.log(`No hay suficiente stock para ${item.name}.`);
           return false;
         }
-        totalAmount += item.value * quantity;
       }
-    } else {
-      for (const { item, quantity } of items) {
+    } else if (transaction.type === "purchase") {
+      for (const { item, quantity } of transaction.items) {
         this.inventory.addItem(item, quantity);
-        totalAmount += item.value * quantity;
       }
     }
-
-    this.transactions.push(
-      new Transaction(
-        `tx-${Date.now()}`,
-        new Date(),
-        items, 
-        totalAmount,
-        participant,
-        type,
-      ),
-    );
     
-
-    console.log(`Transacción completada: ${type} por ${totalAmount} coronas.`);
+    this.transactions.push(transaction);
     return true;
   }
 
   getTransactionHistory(): Transaction[] {
     return this.transactions;
+  }
+
+  getTransactionsHistoryByParticipant(participantId: string): Transaction[] {
+    return this.transactions.filter(
+      (tx) => tx.participant.id === participantId,
+    );
   }
 
   // Calcular total de ingresos por ventas
@@ -73,24 +60,17 @@ export class TransactionService {
       .filter((tx) => tx.type === "sale")
       .forEach((tx) => {
         tx.items.forEach(({ item, quantity }) => {
-  if (itemSales.has(item.id)) {
-    itemSales.get(item.id)!.quantity += quantity;
-  } else {
-    itemSales.set(item.id, { item, quantity });
-  }
-});
-
+          if (itemSales.has(item.id)) {
+            itemSales.get(item.id)!.quantity += quantity;
+          } else {
+            itemSales.set(item.id, { item, quantity });
+          }
+        });
       });
 
     return Array.from(itemSales.values())
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, limit);
-  }
-
-  getTransactionsHistoryByParticipant(participantId: string): Transaction[] {
-    return this.transactions.filter(
-      (tx) => tx.participant.id === participantId,
-    );
   }
 
   removeTransaction(transactionId: string): boolean {
@@ -109,7 +89,6 @@ export class TransactionService {
         this.inventory.removeItem(item.id, quantity); // ← Eliminar correctamente
       });
     }
-    
 
     this.transactions.splice(transactionIndex, 1);
     return true;

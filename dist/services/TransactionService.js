@@ -1,33 +1,31 @@
-import { Transaction } from "../models/Transaction.js";
 export class TransactionService {
     inventory;
     transactions = [];
     constructor(inventory) {
         this.inventory = inventory;
     }
-    processTransaction(participant, items, type) {
-        let totalAmount = 0;
-        if (type === "sale" || type === "return") {
-            for (const { item, quantity } of items) {
+    processTransaction(transaction) {
+        if (transaction.type === "sale" || transaction.type === "return") {
+            for (const { item, quantity } of transaction.items) {
                 if (!this.inventory.removeItem(item.id, quantity)) {
-                    console.log(`Stock insuficiente para ${item.name}`);
+                    console.log(`No hay suficiente stock para ${item.name}.`);
                     return false;
                 }
-                totalAmount += item.value * quantity;
             }
         }
-        else {
-            for (const { item, quantity } of items) {
+        else if (transaction.type === "purchase") {
+            for (const { item, quantity } of transaction.items) {
                 this.inventory.addItem(item, quantity);
-                totalAmount += item.value * quantity;
             }
         }
-        this.transactions.push(new Transaction(`tx-${Date.now()}`, new Date(), items, totalAmount, participant, type));
-        console.log(`Transacción completada: ${type} por ${totalAmount} coronas.`);
+        this.transactions.push(transaction);
         return true;
     }
     getTransactionHistory() {
         return this.transactions;
+    }
+    getTransactionsHistoryByParticipant(participantId) {
+        return this.transactions.filter((tx) => tx.participant.id === participantId);
     }
     // Calcular total de ingresos por ventas
     getTotalIncome() {
@@ -59,9 +57,6 @@ export class TransactionService {
         return Array.from(itemSales.values())
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, limit);
-    }
-    getTransactionsHistoryByParticipant(participantId) {
-        return this.transactions.filter((tx) => tx.participant.id === participantId);
     }
     removeTransaction(transactionId) {
         const transactionIndex = this.transactions.findIndex((tx) => tx.id === transactionId);

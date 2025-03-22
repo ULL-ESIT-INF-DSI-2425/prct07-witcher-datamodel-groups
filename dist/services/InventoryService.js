@@ -1,7 +1,7 @@
 import { Item } from "../models/Item.js";
 import { db } from "../coleccion/coleccion.js"; // Importar la base de datos
 export class InventoryService {
-    stock = new Map();
+    stock = [];
     customers = [];
     merchants = [];
     constructor() {
@@ -20,29 +20,30 @@ export class InventoryService {
         this.merchants = db.data?.mercaderes || [];
     }
     addItem(item, quantity) {
-        if (this.stock.has(item.id)) {
-            this.stock.get(item.id).quantity += quantity;
+        const existingItem = this.stock.find((entry) => entry.item.id === item.id);
+        if (existingItem) {
+            existingItem.quantity += quantity;
         }
         else {
-            this.stock.set(item.id, { item, quantity });
+            this.stock.push({ item, quantity });
         }
+    }
+    removeItem(itemId, quantity) {
+        const existingItem = this.stock.find((entry) => entry.item.id === itemId);
+        if (existingItem && existingItem.quantity >= quantity) {
+            existingItem.quantity -= quantity;
+            if (existingItem.quantity === 0) {
+                this.stock = this.stock.filter((entry) => entry.item.id !== itemId);
+            }
+            return true;
+        }
+        return false;
     }
     addCustomer(customer) {
         this.customers.push(customer);
     }
     addMerchant(merchant) {
         this.merchants.push(merchant);
-    }
-    removeItem(itemId, quantity) {
-        if (!this.stock.has(itemId))
-            return false;
-        const stockItem = this.stock.get(itemId);
-        if (stockItem.quantity < quantity)
-            return false;
-        stockItem.quantity -= quantity;
-        if (stockItem.quantity === 0)
-            this.stock.delete(itemId);
-        return true;
     }
     removeCustomer(customerId) {
         const customerIndex = this.customers.findIndex((customer) => customer.id === customerId);
@@ -59,7 +60,7 @@ export class InventoryService {
         return true;
     }
     getStock() {
-        return Array.from(this.stock.values());
+        return this.stock;
     }
     // Obtener clientes
     getCustomers() {
