@@ -12,7 +12,7 @@ export class TransactionService {
   processTransaction(
     participant: Merchant | Customer,
     items: { item: Item; quantity: number }[],
-    type: "purchase" | "sale" | "return"
+    type: "purchase" | "sale" | "return",
   ): boolean {
     let totalAmount = 0;
 
@@ -35,11 +35,11 @@ export class TransactionService {
       new Transaction(
         `tx-${Date.now()}`,
         new Date(),
-        items.map(i => i.item),
+        items.map((i) => i.item),
         totalAmount,
         participant,
-        type
-      )
+        type,
+      ),
     );
 
     console.log(`Transacción completada: ${type} por ${totalAmount} coronas.`);
@@ -53,14 +53,14 @@ export class TransactionService {
   // Calcular total de ingresos por ventas
   getTotalIncome(): number {
     return this.transactions
-      .filter(tx => tx.type === 'sale')
+      .filter((tx) => tx.type === "sale")
       .reduce((total, tx) => total + tx.totalAmount, 0);
   }
 
   // Calcular total de gastos por compras
   getTotalExpenses(): number {
     return this.transactions
-      .filter(tx => tx.type === 'purchase')
+      .filter((tx) => tx.type === "purchase")
       .reduce((total, tx) => total + tx.totalAmount, 0);
   }
 
@@ -69,9 +69,9 @@ export class TransactionService {
     const itemSales: Map<string, { item: Item; quantity: number }> = new Map();
 
     this.transactions
-      .filter(tx => tx.type === 'sale')
-      .forEach(tx => {
-        tx.items.forEach(item => {
+      .filter((tx) => tx.type === "sale")
+      .forEach((tx) => {
+        tx.items.forEach((item) => {
           if (itemSales.has(item.id)) {
             itemSales.get(item.id)!.quantity += 1;
           } else {
@@ -84,7 +84,31 @@ export class TransactionService {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, limit);
   }
+
+  getTransactionsHistoryByParticipant(participantId: string): Transaction[] {
+    return this.transactions.filter(
+      (tx) => tx.participant.id === participantId,
+    );
+  }
+
+  removeTransaction(transactionId: string): boolean {
+    const transactionIndex = this.transactions.findIndex(
+      (tx) => tx.id === transactionId,
+    );
+    if (transactionIndex === -1) return false;
+
+    const transaction = this.transactions[transactionIndex];
+    if (transaction.type === "sale" || transaction.type === "return") {
+      transaction.items.forEach((item) => {
+        this.inventory.addItem(item, 1);
+      });
+    } else {
+      transaction.items.forEach((item) => {
+        this.inventory.removeItem(item.id, 1);
+      });
+    }
+
+    this.transactions.splice(transactionIndex, 1);
+    return true;
+  }
 }
-
-
-

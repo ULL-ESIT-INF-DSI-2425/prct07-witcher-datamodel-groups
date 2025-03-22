@@ -23,7 +23,7 @@ export class InventoryService {
         itemData.description,
         itemData.material,
         itemData.weight,
-        itemData.value
+        itemData.value,
       );
       this.addItem(item, 1); // Añadir 1 unidad de cada bien por defecto
     });
@@ -42,15 +42,43 @@ export class InventoryService {
     }
   }
 
+  addCustomer(customer: Customer): void {
+    this.customers.push(customer);
+  }
+
+  addMerchant(merchant: Merchant): void {
+    this.merchants.push(merchant);
+  }
+
   removeItem(itemId: string, quantity: number): boolean {
     if (!this.stock.has(itemId)) return false;
-    
+
     const stockItem = this.stock.get(itemId)!;
     if (stockItem.quantity < quantity) return false;
-    
+
     stockItem.quantity -= quantity;
     if (stockItem.quantity === 0) this.stock.delete(itemId);
 
+    return true;
+  }
+
+  removeCustomer(customerId: string): boolean {
+    const customerIndex = this.customers.findIndex(
+      (customer) => customer.id === customerId,
+    );
+    if (customerIndex === -1) return false;
+
+    this.customers.splice(customerIndex, 1);
+    return true;
+  }
+
+  removeMerchant(merchantId: string): boolean {
+    const merchantIndex = this.merchants.findIndex(
+      (merchant) => merchant.id === merchantId,
+    );
+    if (merchantIndex === -1) return false;
+
+    this.merchants.splice(merchantIndex, 1);
     return true;
   }
 
