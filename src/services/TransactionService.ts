@@ -35,12 +35,13 @@ export class TransactionService {
       new Transaction(
         `tx-${Date.now()}`,
         new Date(),
-        items.map((i) => i.item),
+        items, 
         totalAmount,
         participant,
         type,
       ),
     );
+    
 
     console.log(`Transacción completada: ${type} por ${totalAmount} coronas.`);
     return true;
@@ -71,13 +72,14 @@ export class TransactionService {
     this.transactions
       .filter((tx) => tx.type === "sale")
       .forEach((tx) => {
-        tx.items.forEach((item) => {
-          if (itemSales.has(item.id)) {
-            itemSales.get(item.id)!.quantity += 1;
-          } else {
-            itemSales.set(item.id, { item, quantity: 1 });
-          }
-        });
+        tx.items.forEach(({ item, quantity }) => {
+  if (itemSales.has(item.id)) {
+    itemSales.get(item.id)!.quantity += quantity;
+  } else {
+    itemSales.set(item.id, { item, quantity });
+  }
+});
+
       });
 
     return Array.from(itemSales.values())
@@ -99,14 +101,15 @@ export class TransactionService {
 
     const transaction = this.transactions[transactionIndex];
     if (transaction.type === "sale" || transaction.type === "return") {
-      transaction.items.forEach((item) => {
-        this.inventory.addItem(item, 1);
+      transaction.items.forEach(({ item, quantity }) => {
+        this.inventory.addItem(item, quantity); // ← Añadir la cantidad original
       });
     } else {
-      transaction.items.forEach((item) => {
-        this.inventory.removeItem(item.id, 1);
+      transaction.items.forEach(({ item, quantity }) => {
+        this.inventory.removeItem(item.id, quantity); // ← Eliminar correctamente
       });
     }
+    
 
     this.transactions.splice(transactionIndex, 1);
     return true;

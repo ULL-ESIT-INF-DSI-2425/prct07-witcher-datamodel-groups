@@ -22,7 +22,7 @@ export class TransactionService {
                 totalAmount += item.value * quantity;
             }
         }
-        this.transactions.push(new Transaction(`tx-${Date.now()}`, new Date(), items.map((i) => i.item), totalAmount, participant, type));
+        this.transactions.push(new Transaction(`tx-${Date.now()}`, new Date(), items, totalAmount, participant, type));
         console.log(`Transacción completada: ${type} por ${totalAmount} coronas.`);
         return true;
     }
@@ -47,12 +47,12 @@ export class TransactionService {
         this.transactions
             .filter((tx) => tx.type === "sale")
             .forEach((tx) => {
-            tx.items.forEach((item) => {
+            tx.items.forEach(({ item, quantity }) => {
                 if (itemSales.has(item.id)) {
-                    itemSales.get(item.id).quantity += 1;
+                    itemSales.get(item.id).quantity += quantity;
                 }
                 else {
-                    itemSales.set(item.id, { item, quantity: 1 });
+                    itemSales.set(item.id, { item, quantity });
                 }
             });
         });
@@ -62,5 +62,23 @@ export class TransactionService {
     }
     getTransactionsHistoryByParticipant(participantId) {
         return this.transactions.filter((tx) => tx.participant.id === participantId);
+    }
+    removeTransaction(transactionId) {
+        const transactionIndex = this.transactions.findIndex((tx) => tx.id === transactionId);
+        if (transactionIndex === -1)
+            return false;
+        const transaction = this.transactions[transactionIndex];
+        if (transaction.type === "sale" || transaction.type === "return") {
+            transaction.items.forEach(({ item, quantity }) => {
+                this.inventory.addItem(item, quantity); // ← Añadir la cantidad original
+            });
+        }
+        else {
+            transaction.items.forEach(({ item, quantity }) => {
+                this.inventory.removeItem(item.id, quantity); // ← Eliminar correctamente
+            });
+        }
+        this.transactions.splice(transactionIndex, 1);
+        return true;
     }
 }

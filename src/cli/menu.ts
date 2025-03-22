@@ -587,132 +587,135 @@ export async function startInterface(
         break;
 
       case "🤝 Registrar transacción":
+        // quiero poder registrar una transaccion y que eso tenga efecto en el inventario, al vender o devoler se resta del inventario, al comprar se suma al inventario, puede ser la compra de un objeto que esta en el inventario u otro que no lo esté todavia, en cuyo caso habrá que añadir mas parametros para que se almacene el objeto correctamente.
         const { tipoTransaccion } = await inquirer.prompt([
           {
             type: "list",
             name: "tipoTransaccion",
             message: "Seleccione el tipo de transacción:",
-            choices: ["Compra", "Venta", "Devolución"],
+            choices: ["Venta", "Compra", "Devolución"],
           },
         ]);
 
-        let participante;
-        if (tipoTransaccion === "Compra") {
-          const { idMercader } = await inquirer.prompt([
+        const { idTransaccion, fechaTransaccion, idParticipante } =
+          await inquirer.prompt([
             {
               type: "input",
-              name: "idMercader",
-              message: "Ingrese el ID del mercader:",
+              name: "idTransaccion",
+              message: "ID de la transacción:",
             },
-          ]);
-          participante = inventario
-            .getMerchants()
-            .find((mercader) => mercader.id === idMercader);
-          if (!participante) {
-            console.log("No se encontró ningún mercader con ese ID.");
-            break;
-          }
-        } else {
-          const { idCliente } = await inquirer.prompt([
             {
               type: "input",
-              name: "idCliente",
-              message: "Ingrese el ID del cliente:",
+              name: "fechaTransaccion",
+              message: "Fecha de la transacción:",
+            },
+            {
+              type: "input",
+              name: "idParticipante",
+              message: "ID del participante:",
             },
           ]);
-          participante = inventario
-            .getCustomers()
-            .find((cliente) => cliente.id === idCliente);
-          if (!participante) {
-            console.log("No se encontró ningún cliente con ese ID.");
-            break;
-          }
+
+        const participante = inventario
+          .getCustomers()
+          .find((cliente) => cliente.id === idParticipante) ||
+          inventario.getMerchants().find((mercader) => mercader.id === idParticipante);
+
+        if (!participante) {
+          console.log("No se encontró ningún participante con ese ID.");
+          break;
         }
 
-        const items = [];
+        const itemsTransaccion = [];
         while (true) {
-          const { idItem, cantidadItem } = await inquirer.prompt([
+          const { idBien, cantidadBien } = await inquirer.prompt([
             {
               type: "input",
-              name: "idItem",
-              message: "Ingrese el ID del bien:",
+              name: "idBien",
+              message: "ID del bien:",
             },
             {
               type: "number",
-              name: "cantidadItem",
-              message: "Ingrese la cantidad:",
+              name: "cantidadBien",
+              message: "Cantidad:",
               validate: (value) => !isNaN(value) && value > 0,
             },
           ]);
 
-          const item = inventario
+          const bien = inventario
             .getStock()
-            .find((entry) => entry.item.id === idItem);
-          if (!item) {
+            .find((entry) => entry.item.id === idBien);
+          if (!bien) {
             console.log("No se encontró ningún bien con ese ID.");
-            break;
+            continue;
           }
 
-          items.push({ item: item.item, quantity: cantidadItem });
+          itemsTransaccion.push({ item: bien.item, quantity: cantidadBien });
 
-          const { agregarOtro } = await inquirer.prompt([
+          const { añadirOtro } = await inquirer.prompt([
             {
               type: "confirm",
-              name: "agregarOtro",
-              message: "¿Desea agregar otro bien?",
-              default: false,
+              name: "añadirOtro",
+              message: "¿Desea añaadir otro bien a la transacción?",
             },
           ]);
 
-          if (!agregarOtro) break;
+          if (!añadirOtro) {
+            break;
+          }
         }
 
-        const tipo = tipoTransaccion.toLowerCase() as
-          | "purchase"
-          | "sale"
-          | "return";
-        const exito = transacciones.processTransaction(
+        const
+          totalAmount = itemsTransaccion.reduce(
+            (total, { item, quantity }) => total + item.value * quantity,
+            0,
+          );
+
+        const resultado = transacciones.processTransaction(
           participante,
-          items,
-          tipo,
+          itemsTransaccion,
+          tipoTransaccion === "Venta" ? "sale" : tipoTransaccion === "Compra" ? "purchase" : "return",
         );
-        if (exito) {
-          console.log("Transacción registrada con éxito.");
-        } else {
-          console.log("Hubo un problema al registrar la transacción.");
-        }
-        break;
 
-      case "🤝 Ver transacciones":
-        const historial = transacciones.getTransactionHistory();
-        if (historial.length === 0) {
-          console.log("No hay transacciones registradas.");
+        if (resultado) {
+          console.log("Transacción completada con éxito.");
         } else {
-          console.log("Historial de transacciones:");
-          historial.forEach((tx, index) => {
-            console.log(
-              `${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant}, Bienes: ${tx.items.map((item) => `${item.name})`).join(", ")}`,
-            );
-          });
+          console.log("No se pudo completar la transacción.");
         }
         break;
 
       case "🤝 Eliminar transacción":
-        const { idTransaccion } = await inquirer.prompt([
+        const { idTransaccion2 } = await inquirer.prompt([
           {
             type: "input",
-            name: "idTransaccion",
+            name: "idTransaccion2",
             message: "Ingrese el ID de la transacción a eliminar:",
           },
         ]);
 
-        const eliminada = transacciones.removeTransaction(idTransaccion);
+        const eliminada = transacciones.removeTransaction(idTransaccion2);
         if (eliminada) {
           console.log("Transacción eliminada con éxito.");
         } else {
           console.log("No se encontró ninguna transacción con ese ID.");
         }
         break;
+
+      
+        case "🤝 Ver transacciones":
+          const historialTransacciones = transacciones.getTransactionHistory();
+          if (historialTransacciones.length === 0) {
+            console.log("No hay transacciones registradas.");
+          } else {
+            console.log("Historial de transacciones:");
+            historialTransacciones.forEach((tx, index) => {
+              console.log(
+                `${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name || tx.participant.id}, Bienes: ${tx.items.map(({ item }) => item.name).join(", ")}`
+              );
+            });
+          }
+          break;
+
 
       case "🧾 Generar informes":
         const { informe } = await inquirer.prompt([
@@ -755,32 +758,32 @@ export async function startInterface(
         }
         break;
 
-      case "🧾 Historial de transacciones por participante":
-        const { idParticipante } = await inquirer.prompt([
-          {
-            type: "input",
-            name: "idParticipante",
-            message: "Ingrese el ID del participante:",
-          },
-        ]);
-
-        const historialParticipante =
-          transacciones.getTransactionsHistoryByParticipant(idParticipante);
-        if (historialParticipante.length === 0) {
-          console.log(
-            "No hay transacciones registradas para ese participante.",
-          );
-        } else {
-          console.log(
-            `Historial de transacciones para el participante con ID ${idParticipante}:`,
-          );
-          historialParticipante.forEach((tx, index) => {
+        case "🧾 Historial de transacciones por participante":
+          const { idParticipante2 } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "idParticipante2",
+              message: "Ingrese el ID del participante:",
+            },
+          ]);
+  
+          const historialParticipante =
+            transacciones.getTransactionsHistoryByParticipant(idParticipante2);
+          if (historialParticipante.length === 0) {
             console.log(
-              `${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name}, Bienes: ${tx.items.map((item) => item.name).join(", ")}`,
+              "No hay transacciones registradas para ese participante.",
             );
-          });
-        }
-        break;
+          } else {
+            console.log(
+              `Historial de transacciones para el participante con ID ${idParticipante2}:`,
+            );
+            historialParticipante.forEach((tx, index) => {
+              console.log(
+                `${index + 1}. ID: ${tx.id}, Fecha: ${tx.date.toLocaleString()}, Tipo: ${tx.type}, Monto: ${tx.totalAmount} coronas, Participante: ${tx.participant.name || tx.participant.id}, Bienes: ${tx.items.map(({ item, quantity }) => `${item.name} (x${quantity})`).join(", ")}`
+              );
+            });
+          }
+          break;
 
       case "❌ Salir":
         console.log("Saliendo del sistema...");

@@ -6,7 +6,7 @@ export class Transaction {
   constructor(
     public readonly id: string,
     public date: Date,
-    public items: Item[],
+    public items: { item: Item; quantity: number }[],
     public totalAmount: number,
     public participant: Merchant | Customer,
     public type: "purchase" | "sale" | "return",
