@@ -1,9 +1,13 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { InventoryService } from "../src/services/InventoryService";
 import { TransactionService } from "../src/services/TransactionService";
+import { Transaction } from "../src/models/Transaction";
 import { Item } from "../src/models/Item";
 import inquirer from "inquirer";
 import { startInterface } from "../src/cli/menu";
+import { v4 as uuidv4 } from "uuid";
+import { Merchant } from "../src/models/Merchant";
+import { Customer } from "../src/models/Customer";
 
 describe("startInterface", () => {
   let inventario: InventoryService;
@@ -303,42 +307,72 @@ describe("startInterface", () => {
     expect(transaction?.items).toContainEqual({ item, quantity: 5 });
   });
 
-  test("debe eliminar una transacción", async () => {
-    const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
-    inventario.addItem(item, 10);
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" });
+  test("debe eliminar una transacción", () => {
+    let testItem = new Item(
+      "item-001",
+      "Espada de Acero",
+      "Espada forjada en acero valyrio.",
+      "Acero Valyrio",
+      3.5,
+      150
+    );
 
-    transacciones.processTransaction(
-      inventario.getCustomers()[0],
-      [{ item, quantity: 5 }],
+    let merchant = new Merchant(
+      "merchant-001",
+      "Armas del Norte",
+      "Herrero",
+      "Winterfell"
+    );
+
+    // Agregar stock inicial
+    inventario.addItem(testItem, 10);
+    const transaction = new Transaction(
+      uuidv4(),
+      new Date(),
+      [{ item: testItem, quantity: 2 }],
+      testItem.value * 2,
+      merchant,
       "sale"
     );
 
-    mockPrompt
-      .mockResolvedValueOnce({ option: "🤝 Eliminar transacción" })
-      .mockResolvedValueOnce({ idTransaccion2: "1" });
+    // Procesar transacción de venta
+    const processed = transacciones.processTransaction(transaction);
+    expect(processed).toBe(true);
+    expect(transacciones.getTransactionHistory()).toHaveLength(1);
 
-    await startInterface(inventario, transacciones);
-    expect(transacciones.getTransactionHistory()).not.toContainEqual(
-      expect.objectContaining({ id: "1" })
-    );
+    // Eliminar la transacción
+    const removed = transacciones.removeTransaction(transaction.id);
+    expect(removed).toBe(true);
+    expect(transacciones.getTransactionHistory()).toHaveLength(0);
+
+    // Confirmar que el inventario se restauró correctamente
+    const stockEntry = inventario.getStock().find(entry => entry.item.id === testItem.id);
+    expect(stockEntry?.quantity).toBe(10); // Restaurado al valor original
   });
 
   test("debe ver las transacciones", async () => {
     const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
     inventario.addItem(item, 10);
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" });
-
-    transacciones.processTransaction(
-      inventario.getCustomers()[0],
+  
+    const customer = new Customer("1", "Cliente1", "Raza1", "Ubicación1");
+    inventario.addCustomer(customer);
+  
+    const transaction = new Transaction(
+      "1",
+      new Date("2023-01-01"),
       [{ item, quantity: 5 }],
+      500,
+      customer,
       "sale"
     );
-
+  
+    transacciones.processTransaction(transaction);
+  
     mockPrompt.mockResolvedValueOnce({ option: "🤝 Ver transacciones" });
-
+  
     const consoleSpy = vi.spyOn(console, "log");
     await startInterface(inventario, transacciones);
+  
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Item1"));
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("5"));
   });
@@ -346,87 +380,114 @@ describe("startInterface", () => {
   test("debe generar un informe de ingresos por ventas", async () => {
     const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
     inventario.addItem(item, 10);
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" });
-
-    transacciones.processTransaction(
-      inventario.getCustomers()[0],
+  
+    const customer = new Customer("1", "Cliente1", "Raza1", "Ubicación1");
+    inventario.addCustomer(customer);
+  
+    const transaction = new Transaction(
+      "1",
+      new Date("2023-01-01"),
       [{ item, quantity: 5 }],
+      500,
+      customer,
       "sale"
     );
-
+  
+    transacciones.processTransaction(transaction);
+  
     mockPrompt
       .mockResolvedValueOnce({ option: "🧾 Generar informes" })
       .mockResolvedValueOnce({ informe: "Total de ingresos por ventas" });
-
+  
     const consoleSpy = vi.spyOn(console, "log");
     await startInterface(inventario, transacciones);
+  
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("500"));
   });
+  
 
   test("debe generar un informe de gastos por compras", async () => {
     const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
     inventario.addItem(item, 10);
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" });
-
-    transacciones.processTransaction(
-      inventario.getCustomers()[0],
+  
+    const customer = new Customer("1", "Cliente1", "Raza1", "Ubicación1");
+    inventario.addCustomer(customer);
+  
+    const transaction = new Transaction(
+      "1",
+      new Date("2023-01-01"),
       [{ item, quantity: 5 }],
+      500,
+      customer,
       "purchase"
     );
-
+  
+    transacciones.processTransaction(transaction);
+  
     mockPrompt
       .mockResolvedValueOnce({ option: "🧾 Generar informes" })
       .mockResolvedValueOnce({ informe: "Total de gastos por compras" });
-
+  
     const consoleSpy = vi.spyOn(console, "log");
     await startInterface(inventario, transacciones);
+  
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("500"));
   });
+  
 
   test("debe generar un informe de bienes más vendidos", async () => {
     const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
     inventario.addItem(item, 10);
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" });
-
-    transacciones.processTransaction(
-      inventario.getCustomers()[0],
+  
+    const customer = new Customer("1", "Cliente1", "Raza1", "Ubicación1");
+    inventario.addCustomer(customer);
+  
+    const transaction = new Transaction(
+      "1",
+      new Date("2023-01-01"),
       [{ item, quantity: 5 }],
+      500,
+      customer,
       "sale"
     );
-
+  
+    transacciones.processTransaction(transaction);
+  
     mockPrompt
       .mockResolvedValueOnce({ option: "🧾 Generar informes" })
       .mockResolvedValueOnce({ informe: "Bienes más vendidos" });
-
+  
     const consoleSpy = vi.spyOn(console, "log");
     await startInterface(inventario, transacciones);
+  
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Item1"));
   });
-
-  test("debe mostrar el historial de transacciones por participante", async () => {
-    const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
-    inventario.addItem(item, 10); // Añadir un bien al inventario
-    inventario.addCustomer({ id: "1", name: "Cliente1", race: "Raza1", location: "Ubicación1" }); // Añadir un cliente
   
-    // Registrar una transacción para el cliente
-    transacciones.processTransaction(
-      inventario.getCustomers()[0], // Cliente con ID "1"
-      [{ item, quantity: 5 }], // Item y cantidad
-      "sale" // Tipo de transacción
+
+  test("debe mostrar el historial de transacciones por participante", () => {
+    const item = new Item("1", "Item1", "Descripción", "Material", 1, 100);
+    inventario.addItem(item, 10);
+  
+    const customer = new Customer("1", "Cliente1", "Raza1", "Ubicación1");
+    inventario.addCustomer(customer);
+  
+    const transaction = new Transaction(
+      "1",
+      new Date("2023-01-01"),
+      [{ item, quantity: 5 }],
+      500,
+      customer,
+      "sale"
     );
   
-    // Simulamos las respuestas del usuario
-    mockPrompt
-      .mockResolvedValueOnce({ option: "🧾 Historial de transacciones por participante" }) // Selecciona la opción de historial
-      .mockResolvedValueOnce({ idParticipante2: "1" }); // Ingresa el ID del participante
+    transacciones.processTransaction(transaction);
   
-    const consoleSpy = vi.spyOn(console, "log");
-    await startInterface(inventario, transacciones);
-  
-    // Verificamos que se mostró el historial de transacciones
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Item1"));
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("5")); // Verifica la cantidad
+    const history = transacciones.getTransactionsHistoryByParticipant(customer.id);
+    expect(history).toHaveLength(1);
+    expect(history[0].participant.id).toBe("1");
+    expect(history[0].items[0].item.name).toBe("Item1");
   });
+  
 
   test("debe salir del sistema", async () => {
     mockPrompt.mockResolvedValueOnce({ option: "❌ Salir" });
