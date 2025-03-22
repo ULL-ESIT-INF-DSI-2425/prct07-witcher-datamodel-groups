@@ -3,9 +3,13 @@ import { LowSync } from "lowdb";
 import { Schema } from "./schema.js";
 
 // Inicializar Lowdb
-const db = new LowSync<Schema>(new JSONFileSync<Schema>('../db.json'));
+export const db = new LowSync<Schema>(new JSONFileSync<Schema>('../db.json'));
 db.read();
-
+// para actualizar la base de datos, TOMAR EN CUENTA llamar a este método cada vez que realicemos cambios en el inventario o transacciones (ale)
+export function saveData(data: Schema): void {
+    db.data = data;
+    db.write();
+  }
 // Si la base de datos está vacía, llenarla con datos iniciales
 db.data = {
   bienes: [

@@ -49,4 +49,42 @@ export class TransactionService {
   getTransactionHistory(): Transaction[] {
     return this.transactions;
   }
+
+  // Calcular total de ingresos por ventas
+  getTotalIncome(): number {
+    return this.transactions
+      .filter(tx => tx.type === 'sale')
+      .reduce((total, tx) => total + tx.totalAmount, 0);
+  }
+
+  // Calcular total de gastos por compras
+  getTotalExpenses(): number {
+    return this.transactions
+      .filter(tx => tx.type === 'purchase')
+      .reduce((total, tx) => total + tx.totalAmount, 0);
+  }
+
+  // Generar informe de bienes más vendidos
+  getTopSoldItems(limit: number = 5): { item: Item; quantity: number }[] {
+    const itemSales: Map<string, { item: Item; quantity: number }> = new Map();
+
+    this.transactions
+      .filter(tx => tx.type === 'sale')
+      .forEach(tx => {
+        tx.items.forEach(item => {
+          if (itemSales.has(item.id)) {
+            itemSales.get(item.id)!.quantity += 1;
+          } else {
+            itemSales.set(item.id, { item, quantity: 1 });
+          }
+        });
+      });
+
+    return Array.from(itemSales.values())
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, limit);
+  }
 }
+
+
+
