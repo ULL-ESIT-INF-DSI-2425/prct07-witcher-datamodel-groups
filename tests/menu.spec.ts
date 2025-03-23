@@ -615,4 +615,28 @@ describe("startInterface", () => {
     await startInterface(inventario, transacciones);
     expect(consoleSpy).toHaveBeenCalledWith("Saliendo del sistema...");
   });
+
+  test("debe mostrar un mensaje cuando no hay bienes en el inventario", async () => {
+    // Simulamos que el inventario está vacío
+    inventario.getStock = vi.fn().mockReturnValue([]);
+  
+    mockPrompt.mockResolvedValueOnce({ option: "📦 Ver bienes" });
+  
+    const consoleSpy = vi.spyOn(console, "log");
+    await startInterface(inventario, transacciones);
+  
+    // Verificamos que se muestre el mensaje "No hay bienes en el inventario"
+    expect(consoleSpy).toHaveBeenCalledWith("No hay bienes en el inventario.");
+  });
+
+  test("debe mostrar un mensaje cuando no se encuentran bienes", async () => {
+    mockPrompt
+      .mockResolvedValueOnce({ option: "📦 Buscar bien" })
+      .mockResolvedValueOnce({ criterioBusqueda: "Nombre", terminoBusqueda: "NoExistente" });
+  
+    const consoleSpy = vi.spyOn(console, "log");
+    await startInterface(inventario, transacciones);
+  
+    expect(consoleSpy).toHaveBeenCalledWith("No se encontraron bienes que coincidan con la búsqueda.");
+  });
 });
