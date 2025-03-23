@@ -7,7 +7,7 @@
     "test": "vitest run",
     "prettier": "prettier --write .",
     "doc": "typedoc",
-    "coverage": "vitest run --coverage --coverage.include src/cli/*"
+    "coverage": "vitest run --coverage --coverage.include src/controllers/*"
   },
   "repository": {
     "type": "git",

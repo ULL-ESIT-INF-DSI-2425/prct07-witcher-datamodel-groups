@@ -1,5 +1,5 @@
 import { Item } from "../models/Item.js";
-import { db } from "../coleccion/coleccion.js";
+import { db } from "../database/coleccion.js";
 /**
  * Servicio encargado de gestionar el inventario, clientes y comerciantes.
  */

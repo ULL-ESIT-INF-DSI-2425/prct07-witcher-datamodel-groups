@@ -4,7 +4,7 @@ import { TransactionService } from "../src/services/TransactionService";
 import { Transaction } from "../src/models/Transaction";
 import { Item } from "../src/models/Item";
 import inquirer from "inquirer";
-import { startInterface } from "../src/cli/menu";
+import { startInterface } from "../src/controllers/inventoryMenu";
 import { v4 as uuidv4 } from "uuid";
 import { Merchant } from "../src/models/Merchant";
 import { Customer } from "../src/models/Customer";

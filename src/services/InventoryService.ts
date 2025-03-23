@@ -1,8 +1,8 @@
 import { Item } from "../models/Item.js";
 import { Customer } from "../models/Customer.js";
 import { Merchant } from "../models/Merchant.js";
-import { Schema } from "../coleccion/schema.js";
-import { db } from "../coleccion/coleccion.js";
+import { Schema } from "../database/schema.js";
+import { db } from "../database/coleccion.js";
 
 /**
  * Servicio encargado de gestionar el inventario, clientes y comerciantes.

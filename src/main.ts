@@ -1,7 +1,7 @@
 import { InventoryService } from "./services/InventoryService.js";
 import { TransactionService } from "./services/TransactionService.js";
-import { startInterface } from "./cli/menu.js";
-import { db, saveData } from "./coleccion/coleccion.js";
+import { startInterface } from "./controllers/inventoryMenu.js";
+import { db, saveData } from "./database/coleccion.js";
 
 db.read();
 if (!db.data) {
