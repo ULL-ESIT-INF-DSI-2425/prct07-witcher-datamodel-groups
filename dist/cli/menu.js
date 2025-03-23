@@ -2,6 +2,11 @@ import { Transaction } from "../models/Transaction.js";
 import { Item } from "../models/Item.js";
 import inquirer from "inquirer";
 import { v4 as uuidv4 } from "uuid";
+/**
+ * Función que inicia la interfaz de línea de comandos.
+ * @param inventario - Servicio de inventario.
+ * @param transacciones - Servicio de transacciones.
+ */
 export async function startInterface(inventario, transacciones) {
     console.clear();
     console.log("Bienvenido al sistema de gestión de inventario.");
@@ -645,14 +650,29 @@ export async function startInterface(inventario, transacciones) {
                 break;
             case "🤝 Registrar transacción":
                 const transactionData = await inquirer.prompt([
-                    { type: "list", name: "type", message: "Tipo de transacción:", choices: ["Compra", "Venta", "Devolución"] },
-                    { type: "input", name: "participantId", message: "ID del participante:" },
+                    {
+                        type: "list",
+                        name: "type",
+                        message: "Tipo de transacción:",
+                        choices: ["Compra", "Venta", "Devolución"],
+                    },
+                    {
+                        type: "input",
+                        name: "participantId",
+                        message: "ID del participante:",
+                    },
                 ]);
-                // Convertir el tipo de transacción a los valores usados internamente
-                const transactionType = transactionData.type === "Compra" ? "purchase" : transactionData.type === "Venta" ? "sale" : "return";
-                // Buscar al participante
-                const participant = inventario.getCustomers().find(c => c.id === transactionData.participantId) ||
-                    inventario.getMerchants().find(m => m.id === transactionData.participantId);
+                const transactionType = transactionData.type === "Compra"
+                    ? "purchase"
+                    : transactionData.type === "Venta"
+                        ? "sale"
+                        : "return";
+                const participant = inventario
+                    .getCustomers()
+                    .find((c) => c.id === transactionData.participantId) ||
+                    inventario
+                        .getMerchants()
+                        .find((m) => m.id === transactionData.participantId);
                 if (!participant) {
                     console.log("No se encontró un participante válido.");
                     break;
@@ -660,10 +680,13 @@ export async function startInterface(inventario, transacciones) {
                 let items = [];
                 if (transactionType === "purchase") {
                     const { isNewItem } = await inquirer.prompt([
-                        { type: "confirm", name: "isNewItem", message: "¿El bien es nuevo en el inventario?" }
+                        {
+                            type: "confirm",
+                            name: "isNewItem",
+                            message: "¿El bien es nuevo en el inventario?",
+                        },
                     ]);
                     if (isNewItem) {
-                        // Pedir datos de un nuevo bien
                         const newItemData = await inquirer.prompt([
                             { type: "input", name: "name", message: "Nombre del bien:" },
                             { type: "input", name: "description", message: "Descripción:" },
@@ -674,50 +697,61 @@ export async function startInterface(inventario, transacciones) {
                         ]);
                         const newItem = new Item(uuidv4(), newItemData.name, newItemData.description, newItemData.material, parseFloat(newItemData.weight), parseFloat(newItemData.value));
                         inventario.addItem(newItem, parseInt(newItemData.quantity));
-                        items.push({ item: newItem, quantity: parseInt(newItemData.quantity) });
+                        items.push({
+                            item: newItem,
+                            quantity: parseInt(newItemData.quantity),
+                        });
                     }
                     else {
-                        // Seleccionar bienes existentes en stock
                         const stock = inventario.getStock();
                         const { selectedItems } = await inquirer.prompt([
                             {
                                 type: "checkbox",
                                 name: "selectedItems",
                                 message: "Seleccione los bienes a comprar:",
-                                choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
-                            }
+                                choices: stock.map(({ item }) => ({
+                                    name: item.name,
+                                    value: item.id,
+                                })),
+                            },
                         ]);
-                        const itemQuantities = await inquirer.prompt(selectedItems.map(itemId => ({
+                        const itemQuantities = await inquirer.prompt(selectedItems.map((itemId) => ({
                             type: "input",
                             name: itemId,
-                            message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
-                            validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
+                            message: `Ingrese la cantidad para ${stock.find((i) => i.item.id === itemId)?.item.name}:`,
+                            validate: (input) => !isNaN(input) && parseInt(input) > 0
+                                ? true
+                                : "Ingrese un número válido",
                         })));
-                        items = selectedItems.map(itemId => {
-                            const item = stock.find(i => i.item.id === itemId)?.item;
+                        items = selectedItems.map((itemId) => {
+                            const item = stock.find((i) => i.item.id === itemId)?.item;
                             return { item, quantity: parseInt(itemQuantities[itemId]) };
                         });
                     }
                 }
                 else {
-                    // Para ventas o devoluciones
                     const stock = inventario.getStock();
                     const { selectedItems } = await inquirer.prompt([
                         {
                             type: "checkbox",
                             name: "selectedItems",
                             message: "Seleccione los bienes a vender o devolver:",
-                            choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
-                        }
+                            choices: stock.map(({ item }) => ({
+                                name: item.name,
+                                value: item.id,
+                            })),
+                        },
                     ]);
-                    const itemQuantities = await inquirer.prompt(selectedItems.map(itemId => ({
+                    const itemQuantities = await inquirer.prompt(selectedItems.map((itemId) => ({
                         type: "input",
                         name: itemId,
-                        message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
-                        validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
+                        message: `Ingrese la cantidad para ${stock.find((i) => i.item.id === itemId)?.item.name}:`,
+                        validate: (input) => !isNaN(input) && parseInt(input) > 0
+                            ? true
+                            : "Ingrese un número válido",
                     })));
-                    items = selectedItems.map(itemId => {
-                        const item = stock.find(i => i.item.id === itemId)?.item;
+                    items = selectedItems.map((itemId) => {
+                        const item = stock.find((i) => i.item.id === itemId)?.item;
                         return { item, quantity: parseInt(itemQuantities[itemId]) };
                     });
                 }

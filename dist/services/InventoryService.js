@@ -1,24 +1,34 @@
 import { Item } from "../models/Item.js";
-import { db } from "../coleccion/coleccion.js"; // Importar la base de datos
+import { db } from "../coleccion/coleccion.js";
+/**
+ * Servicio encargado de gestionar el inventario, clientes y comerciantes.
+ */
 export class InventoryService {
     stock = [];
     customers = [];
     merchants = [];
+    /**
+     * Crea una instancia del servicio de inventario y carga los datos iniciales.
+     */
     constructor() {
         this.loadInitialData();
     }
-    // Cargar datos iniciales desde la base de datos
+    /**
+     * Carga los datos iniciales desde la base de datos.
+     */
     loadInitialData() {
-        // Cargar bienes
         db.data?.bienes.forEach((itemData) => {
             const item = new Item(itemData.id, itemData.name, itemData.description, itemData.material, itemData.weight, itemData.value);
-            this.addItem(item, 1); // Añadir 1 unidad de cada bien por defecto
+            this.addItem(item, 1);
         });
-        // Cargar clientes
         this.customers = db.data?.clientes || [];
-        // Cargar mercaderes
         this.merchants = db.data?.mercaderes || [];
     }
+    /**
+     * Agrega un ítem al inventario o aumenta su cantidad si ya existe.
+     * @param item - El ítem a agregar.
+     * @param quantity - La cantidad a agregar.
+     */
     addItem(item, quantity) {
         const existingItem = this.stock.find((entry) => entry.item.id === item.id);
         if (existingItem) {
@@ -28,6 +38,12 @@ export class InventoryService {
             this.stock.push({ item, quantity });
         }
     }
+    /**
+     * Remueve una cantidad específica de un ítem del inventario.
+     * @param itemId - ID del ítem a remover.
+     * @param quantity - Cantidad a remover.
+     * @returns `true` si se removió correctamente, `false` si no hay suficiente stock.
+     */
     removeItem(itemId, quantity) {
         const existingItem = this.stock.find((entry) => entry.item.id === itemId);
         if (existingItem && existingItem.quantity >= quantity) {
@@ -39,12 +55,25 @@ export class InventoryService {
         }
         return false;
     }
+    /**
+     * Agrega un cliente a la lista de clientes.
+     * @param customer - Cliente a agregar.
+     */
     addCustomer(customer) {
         this.customers.push(customer);
     }
+    /**
+     * Agrega un comerciante a la lista de comerciantes.
+     * @param merchant - Comerciante a agregar.
+     */
     addMerchant(merchant) {
         this.merchants.push(merchant);
     }
+    /**
+     * Elimina un cliente de la lista.
+     * @param customerId - ID del cliente a eliminar.
+     * @returns `true` si se eliminó correctamente, `false` si no se encontró.
+     */
     removeCustomer(customerId) {
         const customerIndex = this.customers.findIndex((customer) => customer.id === customerId);
         if (customerIndex === -1)
@@ -52,6 +81,11 @@ export class InventoryService {
         this.customers.splice(customerIndex, 1);
         return true;
     }
+    /**
+     * Elimina un comerciante de la lista.
+     * @param merchantId - ID del comerciante a eliminar.
+     * @returns `true` si se eliminó correctamente, `false` si no se encontró.
+     */
     removeMerchant(merchantId) {
         const merchantIndex = this.merchants.findIndex((merchant) => merchant.id === merchantId);
         if (merchantIndex === -1)
@@ -59,14 +93,24 @@ export class InventoryService {
         this.merchants.splice(merchantIndex, 1);
         return true;
     }
+    /**
+     * Obtiene el stock actual del inventario.
+     * @returns Un arreglo con los ítems y sus cantidades.
+     */
     getStock() {
         return this.stock;
     }
-    // Obtener clientes
+    /**
+     * Obtiene la lista de clientes registrados.
+     * @returns Un arreglo con los clientes.
+     */
     getCustomers() {
         return this.customers;
     }
-    // Obtener mercaderes
+    /**
+     * Obtiene la lista de comerciantes registrados.
+     * @returns Un arreglo con los comerciantes.
+     */
     getMerchants() {
         return this.merchants;
     }

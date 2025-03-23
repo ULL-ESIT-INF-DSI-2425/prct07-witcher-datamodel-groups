@@ -1,14 +1,15 @@
 import { JSONFileSync } from "lowdb/node";
 import { LowSync } from "lowdb";
-// Inicializar Lowdb
 export const db = new LowSync(new JSONFileSync("../db.json"));
 db.read();
-// para actualizar la base de datos, TOMAR EN CUENTA llamar a este método cada vez que realicemos cambios en el inventario o transacciones (ale)
+/**
+ * Guarda los datos en la base de datos.
+ * @param data - Datos a guardar.
+ */
 export function saveData(data) {
     db.data = data;
     db.write();
 }
-// Si la base de datos está vacía, llenarla con datos iniciales
 db.data = {
     bienes: [
         {
@@ -237,6 +238,5 @@ db.data = {
         { id: "10", name: "Roche", race: "Humano", location: "Temeria" },
     ],
 };
-// Guardar en db.json
 db.write();
 console.log(" Base de datos inicializada con éxito.");
