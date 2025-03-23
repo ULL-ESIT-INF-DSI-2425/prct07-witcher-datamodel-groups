@@ -35,7 +35,7 @@ export class TransactionService {
         this.inventory.addItem(item, quantity);
       }
     }
-    
+
     this.transactions.push(transaction);
     return true;
   }

@@ -5,6 +5,10 @@ import { Schema } from "./schema.js";
 export const db = new LowSync<Schema>(new JSONFileSync<Schema>("../db.json"));
 db.read();
 
+/**
+ * Guarda los datos en la base de datos.
+ * @param data - Datos a guardar.
+ */
 export function saveData(data: Schema): void {
   db.data = data;
   db.write();

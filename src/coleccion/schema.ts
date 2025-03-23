@@ -10,12 +10,12 @@ export type Schema = {
    * Lista de bienes disponibles en el sistema.
    */
   bienes: Item[];
-  
+
   /**
    * Lista de mercaderes registrados en el sistema.
    */
   mercaderes: Merchant[];
-  
+
   /**
    * Lista de clientes registrados en el sistema.
    */

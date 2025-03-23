@@ -5,6 +5,11 @@ import { Item } from "../models/Item.js";
 import inquirer from "inquirer";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Función que inicia la interfaz de línea de comandos.
+ * @param inventario - Servicio de inventario.
+ * @param transacciones - Servicio de transacciones.
+ */
 export async function startInterface(
   inventario: InventoryService,
   transacciones: TransactionService,
@@ -749,115 +754,162 @@ export async function startInterface(
         }
         break;
 
-        case "🤝 Registrar transacción":
-          const transactionData = await inquirer.prompt([
-            { type: "list", name: "type", message: "Tipo de transacción:", choices: ["Compra", "Venta", "Devolución"] },
-            { type: "input", name: "participantId", message: "ID del participante:" },
+      case "🤝 Registrar transacción":
+        const transactionData = await inquirer.prompt([
+          {
+            type: "list",
+            name: "type",
+            message: "Tipo de transacción:",
+            choices: ["Compra", "Venta", "Devolución"],
+          },
+          {
+            type: "input",
+            name: "participantId",
+            message: "ID del participante:",
+          },
+        ]);
+
+        const transactionType =
+          transactionData.type === "Compra"
+            ? "purchase"
+            : transactionData.type === "Venta"
+              ? "sale"
+              : "return";
+
+        const participant =
+          inventario
+            .getCustomers()
+            .find((c) => c.id === transactionData.participantId) ||
+          inventario
+            .getMerchants()
+            .find((m) => m.id === transactionData.participantId);
+
+        if (!participant) {
+          console.log("No se encontró un participante válido.");
+          break;
+        }
+
+        let items = [];
+
+        if (transactionType === "purchase") {
+          const { isNewItem } = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "isNewItem",
+              message: "¿El bien es nuevo en el inventario?",
+            },
           ]);
-        
-          // Convertir el tipo de transacción a los valores usados internamente
-          const transactionType = transactionData.type === "Compra" ? "purchase" : transactionData.type === "Venta" ? "sale" : "return";
-        
-          // Buscar al participante
-          const participant = inventario.getCustomers().find(c => c.id === transactionData.participantId) ||
-                              inventario.getMerchants().find(m => m.id === transactionData.participantId);
-        
-          if (!participant) {
-            console.log("No se encontró un participante válido.");
-            break;
-          }
-        
-          let items = [];
-        
-          if (transactionType === "purchase") {
-            const { isNewItem } = await inquirer.prompt([
-              { type: "confirm", name: "isNewItem", message: "¿El bien es nuevo en el inventario?" }
+
+          if (isNewItem) {
+            const newItemData = await inquirer.prompt([
+              { type: "input", name: "name", message: "Nombre del bien:" },
+              { type: "input", name: "description", message: "Descripción:" },
+              { type: "input", name: "material", message: "Material:" },
+              { type: "input", name: "weight", message: "Peso:" },
+              { type: "input", name: "value", message: "Valor unitario:" },
+              { type: "input", name: "quantity", message: "Cantidad:" },
             ]);
-        
-            if (isNewItem) {
-              // Pedir datos de un nuevo bien
-              const newItemData = await inquirer.prompt([
-                { type: "input", name: "name", message: "Nombre del bien:" },
-                { type: "input", name: "description", message: "Descripción:" },
-                { type: "input", name: "material", message: "Material:" },
-                { type: "input", name: "weight", message: "Peso:" },
-                { type: "input", name: "value", message: "Valor unitario:" },
-                { type: "input", name: "quantity", message: "Cantidad:" },
-              ]);
-        
-              const newItem = new Item(uuidv4(), newItemData.name, newItemData.description, newItemData.material, parseFloat(newItemData.weight), parseFloat(newItemData.value));
-              inventario.addItem(newItem, parseInt(newItemData.quantity));
-              items.push({ item: newItem, quantity: parseInt(newItemData.quantity) });
-        
-            } else {
-              // Seleccionar bienes existentes en stock
-              const stock = inventario.getStock();
-              const { selectedItems } = await inquirer.prompt([
-                {
-                  type: "checkbox",
-                  name: "selectedItems",
-                  message: "Seleccione los bienes a comprar:",
-                  choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
-                }
-              ]);
-        
-              const itemQuantities = await inquirer.prompt(
-                selectedItems.map(itemId => ({
-                  type: "input",
-                  name: itemId,
-                  message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
-                  validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
-                }))
-              );
-        
-              items = selectedItems.map(itemId => {
-                const item = stock.find(i => i.item.id === itemId)?.item;
-                return { item, quantity: parseInt(itemQuantities[itemId]) };
-              });
-            }
+
+            const newItem = new Item(
+              uuidv4(),
+              newItemData.name,
+              newItemData.description,
+              newItemData.material,
+              parseFloat(newItemData.weight),
+              parseFloat(newItemData.value),
+            );
+            inventario.addItem(newItem, parseInt(newItemData.quantity));
+            items.push({
+              item: newItem,
+              quantity: parseInt(newItemData.quantity),
+            });
           } else {
-            // Para ventas o devoluciones
             const stock = inventario.getStock();
             const { selectedItems } = await inquirer.prompt([
               {
                 type: "checkbox",
                 name: "selectedItems",
-                message: "Seleccione los bienes a vender o devolver:",
-                choices: stock.map(({ item }) => ({ name: item.name, value: item.id })),
-              }
+                message: "Seleccione los bienes a comprar:",
+                choices: stock.map(({ item }) => ({
+                  name: item.name,
+                  value: item.id,
+                })),
+              },
             ]);
-        
+
             const itemQuantities = await inquirer.prompt(
-              selectedItems.map(itemId => ({
+              selectedItems.map((itemId) => ({
                 type: "input",
                 name: itemId,
-                message: `Ingrese la cantidad para ${stock.find(i => i.item.id === itemId)?.item.name}:`,
-                validate: input => !isNaN(input) && parseInt(input) > 0 ? true : "Ingrese un número válido"
-              }))
+                message: `Ingrese la cantidad para ${stock.find((i) => i.item.id === itemId)?.item.name}:`,
+                validate: (input) =>
+                  !isNaN(input) && parseInt(input) > 0
+                    ? true
+                    : "Ingrese un número válido",
+              })),
             );
-        
-            items = selectedItems.map(itemId => {
-              const item = stock.find(i => i.item.id === itemId)?.item;
+
+            items = selectedItems.map((itemId) => {
+              const item = stock.find((i) => i.item.id === itemId)?.item;
               return { item, quantity: parseInt(itemQuantities[itemId]) };
             });
           }
-        
-          if (!items.length) {
-            console.log("No se encontraron bienes válidos.");
-            break;
-          }
-        
-          const totalAmount = items.reduce((sum, { item, quantity }) => sum + item.value * quantity, 0);
-          const newTransaction = new Transaction(uuidv4(), new Date(), items, totalAmount, participant, transactionType);
-        
-          if (transacciones.processTransaction(newTransaction)) {
-            console.log("Transacción procesada exitosamente.");
-          } else {
-            console.log("No se pudo procesar la transacción.");
-          }
+        } else {
+          const stock = inventario.getStock();
+          const { selectedItems } = await inquirer.prompt([
+            {
+              type: "checkbox",
+              name: "selectedItems",
+              message: "Seleccione los bienes a vender o devolver:",
+              choices: stock.map(({ item }) => ({
+                name: item.name,
+                value: item.id,
+              })),
+            },
+          ]);
+
+          const itemQuantities = await inquirer.prompt(
+            selectedItems.map((itemId) => ({
+              type: "input",
+              name: itemId,
+              message: `Ingrese la cantidad para ${stock.find((i) => i.item.id === itemId)?.item.name}:`,
+              validate: (input) =>
+                !isNaN(input) && parseInt(input) > 0
+                  ? true
+                  : "Ingrese un número válido",
+            })),
+          );
+
+          items = selectedItems.map((itemId) => {
+            const item = stock.find((i) => i.item.id === itemId)?.item;
+            return { item, quantity: parseInt(itemQuantities[itemId]) };
+          });
+        }
+
+        if (!items.length) {
+          console.log("No se encontraron bienes válidos.");
           break;
-        
-        
+        }
+
+        const totalAmount = items.reduce(
+          (sum, { item, quantity }) => sum + item.value * quantity,
+          0,
+        );
+        const newTransaction = new Transaction(
+          uuidv4(),
+          new Date(),
+          items,
+          totalAmount,
+          participant,
+          transactionType,
+        );
+
+        if (transacciones.processTransaction(newTransaction)) {
+          console.log("Transacción procesada exitosamente.");
+        } else {
+          console.log("No se pudo procesar la transacción.");
+        }
+        break;
 
       case "🤝 Eliminar transacción":
         const { idTransaccion2 } = await inquirer.prompt([
@@ -1008,8 +1060,7 @@ export async function startInterface(
         break;
 
       case "🧾 Bien más vendido":
-        const
-          bienMasVendido = transacciones.getTopSoldItems();
+        const bienMasVendido = transacciones.getTopSoldItems();
         console.log(
           `El bien más vendido es: ${bienMasVendido[0].item.name} con ${bienMasVendido[0].quantity} unidades vendidas.`,
         );

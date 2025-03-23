@@ -2,7 +2,7 @@ import { Item } from "../models/Item.js";
 import { Customer } from "../models/Customer.js";
 import { Merchant } from "../models/Merchant.js";
 import { Schema } from "../coleccion/schema.js";
-import { db } from "../coleccion/coleccion.js"; 
+import { db } from "../coleccion/coleccion.js";
 
 /**
  * Servicio encargado de gestionar el inventario, clientes y comerciantes.
@@ -34,7 +34,7 @@ export class InventoryService {
       );
       this.addItem(item, 1);
     });
-    
+
     this.customers = db.data?.clientes || [];
     this.merchants = db.data?.mercaderes || [];
   }
@@ -124,7 +124,7 @@ export class InventoryService {
   getStock(): { item: Item; quantity: number }[] {
     return this.stock;
   }
-  
+
   /**
    * Obtiene la lista de clientes registrados.
    * @returns Un arreglo con los clientes.
