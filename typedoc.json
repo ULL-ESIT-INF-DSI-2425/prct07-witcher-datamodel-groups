@@ -1,5 +1,6 @@
 {
   "entryPoints": ["src/**/*.ts"],
   "out": "./docs",
+  "name": "prct07-witcher-datamodel-groups",
   "readme": "README.md"
 }
