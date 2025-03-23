@@ -7,7 +7,9 @@
     "test": "vitest run",
     "prettier": "prettier --write .",
     "doc": "typedoc",
-    "coverage": "vitest run --coverage --coverage.include src/controllers/*"
+    "coverage": "vitest run --coverage --coverage.include src/controllers/*",
+    "build": "tsc",
+    "start": "node dist/main.js"
   },
   "repository": {
     "type": "git",
